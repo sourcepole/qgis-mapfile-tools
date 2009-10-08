@@ -51,4 +51,4 @@ class MapfileLayerDialog(QtGui.QDialog):
       for layer in layers:
         item = QtGui.QListWidgetItem(self.ui.listLayers)
         item.setText(layer)
-      self.ui.listLayers.selectAll()
+#      self.ui.listLayers.selectAll()

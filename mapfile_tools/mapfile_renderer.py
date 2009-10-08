@@ -28,7 +28,7 @@ class MapfileRenderer():
     self.srs = "EPSG:4326"
     self.mime_type = "image/png"
 
-  def setup(self, layers, srs = None, mime_type = "image/png"):
+  def setup(self, layers, srs = "EPSG:4326", mime_type = "image/png"):
     self.layers = layers
     self.srs = srs
     self.mime_type = mime_type
@@ -42,8 +42,7 @@ class MapfileRenderer():
     req.setParameter("bbox", bbox)
     req.setParameter("width", str(size[0]))
     req.setParameter("height", str(size[1]))
-    if self.srs != None:
-      req.setParameter("srs", self.srs)
+    req.setParameter("srs", self.srs)
     req.setParameter("format", self.mime_type)
     req.setParameter("layers", self.layers)
     req.setParameter("request", "GetMap")
@@ -65,3 +64,8 @@ class MapfileRenderer():
       layers.append(wms.getLayer(i).name)
 
     return layers
+
+  def getProj(self):
+    wms = mapscript.mapObj(self.mapfile)
+
+    return wms.getProjection()
