@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """
 /***************************************************************************
 MapfileLayer
@@ -24,85 +25,28 @@ from PyQt4.QtCore import *
 from PyQt4.QtGui import *
 from qgis.core import *
 
-from mapfile_renderer import MapfileRenderer
+import string
 
-class MapfileLayer(QObject):
+from mapfile_renderer import MapfileRenderer
+from mapfile_layer_dialog import MapfileLayerDialog
+
+class MapfileLayer(QgsPluginLayer):
+
+  LAYER_TYPE="mapfile"
+
   def __init__(self):
-    QObject.__init__(self)
+    QgsPluginLayer.__init__(self, MapfileLayer.LAYER_TYPE, "Mapfile Tools plugin layer")
+    self.setValid(True)
+
     self.mapfile = ""
     self.layers = ""
     self.maprenderer = None
+    self.pixmap = None
 
-  def create(self, mapfile, layers):
-    self.mapfile = mapfile
-    self.layers = layers
-
-    # add new layer
-    self.layer = QgsPluginLayer("MapfileLayer", "Mapfile (%s)" % self.mapfile, self.mapfile)
-    if self.layer.isValid():
-      QgsMapLayerRegistry.instance().addMapLayer(self.layer)
-
-    return self.setup()
-
-  def createFromLayer(self, maplayer):
-    self.mapfile = maplayer.source()
-    self.layers = ""
-
-    # get layers
-    properties = maplayer.pluginProperties()
-    layersNode = properties.namedItem("layers")
-    if not layersNode.isNull():
-      self.layers = str(layersNode.toElement().text())
-
-    # use existing layer
-    self.layer = maplayer
-
-    return self.setup()
-
-  def setup(self):
-    if self.mapfile == "":
-      return False
-
-    # open mapfile
-    self.maprenderer = MapfileRenderer(str(self.mapfile))
-
-    # get projection as EPSG
-    self.crs = QgsCoordinateReferenceSystem()
-    self.crs.createFromProj4(self.maprenderer.getProj())
-    if not self.crs.isValid():
-      self.crs.validate()
-
-    srs = "EPSG:%d" % self.crs.epsg()
-
-    # always use default format for now
-    self.maprenderer.setup(self.layers, srs)
-
-    if self.layer.isValid():
-      # set projection
-      self.layer.setCrs(self.crs)
-
-      # set extents
-      extents = self.maprenderer.getExtents()
-      self.layer.setExtent(QgsRectangle(extents[0], extents[1], extents[2], extents[3]))
-
-      self.pixmap = QPixmap()
-
-      # layer remove
-      QObject.connect(self.layer, SIGNAL("layerDeleted()"), self.layerDeleted)
-      # layer draw
-      QObject.connect(self.layer, SIGNAL("drawLayer(QgsRenderContext&)"), self.drawLayer)
-      # layer save
-      QObject.connect(self.layer, SIGNAL("writePluginProperties(QDomNode&, QDomDocument&)"), self.writePluginProperties)
-
+  def draw(self, rendererContext):
+    if self.maprenderer == None:
       return True
 
-    return False
-
-  def layerDeleted(self):
-    self.layer = None
-    self.emit(SIGNAL("layerDeleted()"))
-
-  def drawLayer(self, rendererContext):
     extents = rendererContext.extent()
     bbox = "%f,%f,%f,%f" % (extents.xMinimum(), extents.yMinimum(), extents.xMaximum(), extents.yMaximum())
     viewport = rendererContext.painter().viewport()
@@ -113,8 +57,80 @@ class MapfileLayer(QObject):
     painter = rendererContext.painter()
     painter.drawPixmap(0, 0, self.pixmap)
 
-  def writePluginProperties(self, node, doc):
-    layers = doc.createElement("layers")
-    layersText = doc.createTextNode(self.layers)
-    layers.appendChild(layersText)
-    node.appendChild(layers);
+    return True
+
+  def readXml(self, node):
+    # custom properties
+    mapfile = node.toElement().attribute("mapfile", "")
+    layers = str(node.toElement().attribute("layers", ""))
+    self.loadMapfile(mapfile, layers)
+    return True
+
+  def writeXml(self, node, doc):
+    element = node.toElement();
+    # write plugin layer type to project (essential to be read from project)
+    element.setAttribute("type", "plugin")
+    element.setAttribute("name", MapfileLayer.LAYER_TYPE);
+    # custom properties
+    element.setAttribute("mapfile", str(self.mapfile))
+    element.setAttribute("layers", str(self.layers))
+    return True
+
+  def loadMapfile(self, mapfile, layers):
+    self.mapfile = mapfile
+    self.layers = layers
+    if self.mapfile == "":
+      return
+
+    # open mapfile
+    self.maprenderer = MapfileRenderer(str(self.mapfile))
+
+    # get projection as EPSG
+    crs = QgsCoordinateReferenceSystem()
+    crs.createFromProj4(self.maprenderer.getProj())
+    if not crs.isValid():
+      crs.validate()
+
+    srs = "EPSG:%d" % crs.epsg()
+
+    # always use default format for now
+    self.maprenderer.setup(self.layers, srs)
+
+    # set projection
+    self.setCrs(crs)
+
+    # TODO: set extents
+#    extents = self.maprenderer.getExtents()
+#    self.setExtent(QgsRectangle(extents[0], extents[1], extents[2], extents[3]))
+
+    if self.pixmap == None:
+      self.pixmap = QPixmap()
+
+    # trigger repaint
+    self.setCacheImage(None)
+    self.emit(SIGNAL("repaintRequested()"))
+
+  def showProperties(self):
+    # create and show the dialog
+    dlg = MapfileLayerDialog()
+
+    # show the dialog
+    dlg.ui.leMapfile.setText(self.mapfile)
+    dlg.updateInfo()
+    dlg.show()
+
+    # See if OK was pressed
+    if dlg.exec_() == 1:
+      mapfile = dlg.ui.leMapfile.text()
+
+      # selected layers
+      items = dlg.ui.listLayers.selectedItems()
+      layerlist = []
+      for item in items:
+        layerlist.append(str(item.text()))
+      layers = string.join(layerlist, ",")
+
+      self.loadMapfile(mapfile, layers)
+      return True
+
+    return False

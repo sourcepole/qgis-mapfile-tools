@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """
 /***************************************************************************
 MapfileTools
@@ -24,18 +25,15 @@ from PyQt4.QtGui import *
 from qgis.core import *
 
 import resources
-import string
 
-from mapfile_layer_dialog import MapfileLayerDialog
 from mapfile_layer import MapfileLayer
+from mapfile_plugin_layer_type import MapfilePluginLayerType
 
 class MapfileTools:
 
   def __init__(self, iface):
     # Save reference to the QGIS interface
     self.iface = iface
-    self.mapfileLayers = []
-    self.mapfile = ""
 
   def initGui(self):
     # Create action that will start plugin configuration
@@ -47,63 +45,25 @@ class MapfileTools:
     self.iface.addToolBarIcon(self.actionLayer)
     self.iface.addPluginToMenu("Mapfile Tools", self.actionLayer)
 
-    # Mapfile layers
-    QObject.connect(QgsProject.instance(), SIGNAL("readProject(QDomDocument)"), self.readProject)
+    # Register plugin layer type
+    QgsPluginLayerRegistry.instance().addPluginLayerType(MapfilePluginLayerType())
 
   def unload(self):
     # Remove the plugin menu item and icon
     self.iface.removePluginMenu("Mapfile Tools",self.actionLayer)
     self.iface.removeToolBarIcon(self.actionLayer)
 
-  def readProject(self, doc):
-    # restore mapfile layers after loading a project
-    mapLayers = QgsMapLayerRegistry.instance().mapLayers()
-    for name, maplayer in mapLayers.iteritems():
-      if maplayer.type() == QgsMapLayer.PluginLayer and maplayer.pluginId() == "MapfileLayer":
-        mapfileLayer = MapfileLayer()
-        if mapfileLayer.createFromLayer(maplayer):
-          self.mapfileLayers.append(mapfileLayer)
-          QObject.connect(mapfileLayer, SIGNAL("layerDeleted()"), self.removeLayer)
+    # Unregister plugin layer type
+    QgsPluginLayerRegistry.instance().removePluginLayerType(MapfileLayer.LAYER_TYPE)
 
   def addLayer(self):
-    # create and show the dialog
-    dlg = MapfileLayerDialog()
+    # add new mapfile layer
+    mapfileLayer = MapfileLayer()
+    if mapfileLayer.showProperties():
+      QgsMapLayerRegistry.instance().addMapLayer(mapfileLayer)
 
-    # show the dialog
-    dlg.ui.leMapfile.setText(self.mapfile)
-    dlg.updateInfo()
-    dlg.show()
-
-    # See if OK was pressed
-    if dlg.exec_() == 1:
-      self.mapfile = dlg.ui.leMapfile.text()
-
-      # selected layers
-      items = dlg.ui.listLayers.selectedItems()
-      layerlist = []
-      for item in items:
-        layerlist.append(str(item.text()))
-      layers = string.join(layerlist, ",")
-
-      # add new mapfile layer
-      mapfileLayer = MapfileLayer()
-      if mapfileLayer.create(self.mapfile, layers):
-        self.mapfileLayers.append(mapfileLayer)
-        QObject.connect(mapfileLayer, SIGNAL("layerDeleted()"), self.removeLayer)
-
-        # use mapfile extents for initial view if this is the only layer
-        if self.iface.mapCanvas().layerCount() == 1:
-          extents = mapfileLayer.maprenderer.getExtents()
-          self.iface.mapCanvas().setExtent(QgsRectangle(extents[0], extents[1], extents[2], extents[3]))
-
+      # use mapfile extents for initial view if this is the only layer
+      if self.iface.mapCanvas().layerCount() == 1:
+        extents = mapfileLayer.maprenderer.getExtents()
+        self.iface.mapCanvas().setExtent(QgsRectangle(extents[0], extents[1], extents[2], extents[3]))
         self.iface.mapCanvas().refresh()
-
-  def removeLayer(self):
-    layerToRemove = None
-    for mapfileLayer in self.mapfileLayers:
-      if mapfileLayer.layer == None:
-        layerToRemove = mapfileLayer
-        break
-
-    if layerToRemove != None:
-      self.mapfileLayers.remove(layerToRemove)

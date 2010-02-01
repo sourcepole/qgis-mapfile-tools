@@ -5,8 +5,8 @@ MapfileTools
 A QGIS plugin
 MapServer Mapfile Tools
                              -------------------
-begin                : 2009-09-09 
-copyright            : (C) 2009 by Sourcepole
+begin                : 2010-02-01
+copyright            : (C) 2010 by Sourcepole
 email                : info at sourcepole dot ch
  ***************************************************************************/
 
@@ -18,21 +18,24 @@ email                : info at sourcepole dot ch
  *   (at your option) any later version.                                   *
  *                                                                         *
  ***************************************************************************/
- This script initializes the plugin, making it known to QGIS.
 """
 
-def name(): 
-  return "Mapfile Tools" 
-def description():
-  return "Load UMN Mapserver Mapfile as Layer"
-def version(): 
-  return "Version 0.3"
-def qgisMinimumVersion():
-  return "1.5"
-def authorName():
-  return "Sourcepole"
-def homepage():
-  return "http://github.com/pka/qgis-mapfile-tools"
-def classFactory(iface):
-  from mapfile_tools import MapfileTools
-  return MapfileTools(iface)
+from PyQt4.QtCore import *
+from PyQt4.QtGui import *
+from qgis.core import *
+
+from mapfile_layer import MapfileLayer
+
+class MapfilePluginLayerType(QgsPluginLayerType):
+
+  def __init__(self):
+    QgsPluginLayerType.__init__(self, MapfileLayer.LAYER_TYPE)
+
+  def createLayer(self):
+    return MapfileLayer()
+
+  def showLayerProperties(self, layer):
+    layer.showProperties()
+
+    # indicate that we have shown the properties dialog
+    return True
