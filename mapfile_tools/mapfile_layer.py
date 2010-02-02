@@ -43,19 +43,42 @@ class MapfileLayer(QgsPluginLayer):
     self.maprenderer = None
     self.pixmap = None
 
+  def setupPaintArea(self, rendererContext):
+    rasterScaleFactor = rendererContext.rasterScaleFactor()
+    invRasterScaleFactor = 1.0/rasterScaleFactor
+
+    # setup painter
+    painter = rendererContext.painter()
+    painter.scale(invRasterScaleFactor, invRasterScaleFactor)
+
+    # get dimensions of painter area (so it is also correctly scaled in print composer)
+    extent = rendererContext.extent()
+    mapToPixel = rendererContext.mapToPixel()
+    topleft = mapToPixel.transform(extent.xMinimum(), extent.yMaximum())
+    bottomright = mapToPixel.transform(extent.xMaximum(), extent.yMinimum())
+
+    topleft.multiply(rasterScaleFactor)
+    bottomright.multiply(rasterScaleFactor)
+
+    return QgsRectangle(topleft, bottomright)
+
   def draw(self, rendererContext):
     if self.maprenderer == None:
       return True
 
+    painter = rendererContext.painter()
+    painter.save()
+
     extents = rendererContext.extent()
     bbox = "%f,%f,%f,%f" % (extents.xMinimum(), extents.yMinimum(), extents.xMaximum(), extents.yMaximum())
-    viewport = rendererContext.painter().viewport()
+    viewport = self.setupPaintArea(rendererContext)
 
     img = self.maprenderer.render(bbox, (viewport.width(), viewport.height()))
     self.pixmap.loadFromData(img)
 
-    painter = rendererContext.painter()
-    painter.drawPixmap(0, 0, self.pixmap)
+    painter.drawPixmap(viewport.xMinimum(), viewport.yMinimum(), self.pixmap)
+
+    painter.restore()
 
     return True
 
