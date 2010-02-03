@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """
 /***************************************************************************
 MapfileRenderer
@@ -69,3 +70,8 @@ class MapfileRenderer():
     wms = mapscript.mapObj(self.mapfile)
 
     return wms.getProjection()
+
+  def getMaxSize(self):
+    wms = mapscript.mapObj(self.mapfile)
+
+    return wms.maxsize

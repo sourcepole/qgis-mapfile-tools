@@ -26,6 +26,7 @@ from PyQt4.QtGui import *
 from qgis.core import *
 
 import string
+import math
 
 from mapfile_renderer import MapfileRenderer
 from mapfile_layer_dialog import MapfileLayerDialog
@@ -62,6 +63,46 @@ class MapfileLayer(QgsPluginLayer):
 
     return QgsRectangle(topleft, bottomright)
 
+  def drawUntiled(self, painter, extent, viewport):
+    bbox = "%f,%f,%f,%f" % (extent.xMinimum(), extent.yMinimum(), extent.xMaximum(), extent.yMaximum())
+    img = self.maprenderer.render(bbox, (viewport.width(), viewport.height()))
+    self.pixmap.loadFromData(img)
+    painter.drawPixmap(viewport.xMinimum(), viewport.yMinimum(), self.pixmap)
+
+  def drawTiled(self, painter, extent, viewport, maxWidth, maxHeight):
+    # dimensions
+    mapMinX = extent.xMinimum()
+    mapMaxX = extent.xMaximum()
+    mapMinY = extent.yMinimum()
+    mapMaxY = extent.yMaximum()
+    viewportWidth = viewport.width()
+    viewportHeight = viewport.height()
+    pixelToMapUnitsX = (mapMaxX - mapMinX) / viewportWidth
+    pixelToMapUnitsY = (mapMaxY - mapMinY) / viewportHeight
+
+    # draw tiles
+    nx = int( math.ceil(viewportWidth / maxWidth) )
+    ny = int( math.ceil(viewportHeight / maxHeight) )
+    for i in range(0,nx):
+      for j in range(0,ny):
+        # tile size
+        left = i * maxWidth
+        right = min((i+1) * maxWidth, viewportWidth)
+        top = j * maxHeight
+        bottom = min((j+1) * maxHeight, viewportHeight)
+        width = right - left
+        height = bottom - top
+
+        # tile extents
+        mapBottomLeft = QgsPoint(mapMinX + left * pixelToMapUnitsX, mapMaxY - bottom * pixelToMapUnitsY)
+        mapTopRight = QgsPoint(mapMinX + right * pixelToMapUnitsX, mapMaxY - top * pixelToMapUnitsY)
+        bbox = "%f,%f,%f,%f" % (mapBottomLeft.x(), mapBottomLeft.y(), mapTopRight.x(), mapTopRight.y())
+
+        # render and compose image
+        img = self.maprenderer.render(bbox, (width, height))
+        self.pixmap.loadFromData(img)
+        painter.drawPixmap(viewport.xMinimum() + left, viewport.yMinimum() + top, self.pixmap)
+
   def draw(self, rendererContext):
     if self.maprenderer == None:
       return True
@@ -69,14 +110,17 @@ class MapfileLayer(QgsPluginLayer):
     painter = rendererContext.painter()
     painter.save()
 
-    extents = rendererContext.extent()
-    bbox = "%f,%f,%f,%f" % (extents.xMinimum(), extents.yMinimum(), extents.xMaximum(), extents.yMaximum())
+    maxSize = self.maprenderer.getMaxSize()
+    extent = rendererContext.extent()
     viewport = self.setupPaintArea(rendererContext)
 
-    img = self.maprenderer.render(bbox, (viewport.width(), viewport.height()))
-    self.pixmap.loadFromData(img)
-
-    painter.drawPixmap(viewport.xMinimum(), viewport.yMinimum(), self.pixmap)
+    maxWidth = min(viewport.width(), maxSize)
+    maxHeight = min(viewport.height(), maxSize)
+    if maxWidth < viewport.width() or maxHeight < viewport.height():
+      # compose image from tiles with maxSize
+      self.drawTiled(painter, extent, viewport, maxWidth, maxHeight)
+    else:
+      self.drawUntiled(painter, extent, viewport)
 
     painter.restore()
 
