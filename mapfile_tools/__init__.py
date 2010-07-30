@@ -26,13 +26,13 @@ def name():
 def description():
   return "Load UMN Mapserver Mapfile as Layer"
 def version(): 
-  return "Version 0.3"
+  return "0.4"
 def qgisMinimumVersion():
   return "1.5"
 def authorName():
   return "Sourcepole"
 def homepage():
-  return "http://github.com/pka/qgis-mapfile-tools"
+  return "http://github.com/sourcepole/qgis-mapfile-tools"
 def classFactory(iface):
   from mapfile_tools import MapfileTools
   return MapfileTools(iface)
