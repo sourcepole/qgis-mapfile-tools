@@ -59,7 +59,7 @@ class MapfileTools:
   def addLayer(self):
     # add new mapfile layer
     mapfileLayer = MapfileLayer()
-    if mapfileLayer.showProperties():
+    if mapfileLayer.openMapfile(): #mapfileLayer.showProperties():
       QgsMapLayerRegistry.instance().addMapLayer(mapfileLayer)
 
       # use mapfile extents for initial view if this is the only layer

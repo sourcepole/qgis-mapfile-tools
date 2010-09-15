@@ -64,8 +64,9 @@ class MapfileLayer(QgsPluginLayer):
     return QgsRectangle(topleft, bottomright)
 
   def drawUntiled(self, painter, extent, viewport):
-    bbox = "%f,%f,%f,%f" % (extent.xMinimum(), extent.yMinimum(), extent.xMaximum(), extent.yMaximum())
-    img = self.maprenderer.render(bbox, (viewport.width(), viewport.height()))
+    img = self.maprenderer.render(extent, (viewport.width(), viewport.height()))
+    #bbox = "%f,%f,%f,%f" % (extent.xMinimum(), extent.yMinimum(), extent.xMaximum(), extent.yMaximum())
+    #img = self.maprenderer.renderWMS(bbox, (viewport.width(), viewport.height()))
     self.pixmap.loadFromData(img)
     painter.drawPixmap(viewport.xMinimum(), viewport.yMinimum(), self.pixmap)
 
@@ -176,6 +177,13 @@ class MapfileLayer(QgsPluginLayer):
     # trigger repaint
     self.setCacheImage(None)
     self.emit(SIGNAL("repaintRequested()"))
+
+  def openMapfile(self):
+    mapfile = QFileDialog.getOpenFileName(None, "Mapfile", ".", "MapServer map files (*.map);;All files (*.*)","Filter list for selecting files from a dialog box")
+    if mapfile != "":
+      self.loadMapfile(str(mapfile), ())
+      return True
+    return False
 
   def showProperties(self):
     # create and show the dialog

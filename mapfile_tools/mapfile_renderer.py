@@ -34,10 +34,22 @@ class MapfileRenderer():
     self.srs = srs
     self.mime_type = mime_type
 
+  # extent: QExtent
+  # size = (width,height)
+  def render(self, extent, size):
+    mapObj = mapscript.mapObj(self.mapfile)
+
+    mapObj.setExtent(extent.xMinimum(), extent.yMinimum(), extent.xMaximum(), extent.yMaximum())
+    mapObj.setSize(int(size[0]), int(size[1]))
+
+    mapImage = mapObj.draw() #= mapscript.imageObj(int(size[0]), int(size[1]), self.mime_type)
+    data = mapImage.getBytes()
+    return data
+
   # bbox = "xmin,ymin,xmax,ymax"
   # size = (width,height)
-  def render(self, bbox, size):
-    wms = mapscript.mapObj(self.mapfile)
+  def renderWMS(self, bbox, size):
+    mapObj = mapscript.mapObj(self.mapfile)
 
     req = mapscript.OWSRequest()
     req.setParameter("bbox", bbox)
@@ -48,30 +60,31 @@ class MapfileRenderer():
     req.setParameter("layers", self.layers)
     req.setParameter("request", "GetMap")
 
-    wms.loadOWSParameters(req)
-    mapImage = wms.draw()
+    mapObj.loadOWSParameters(req)
+
+    mapImage = mapObj.draw()
     data = mapImage.getBytes()
     return data
 
   def getExtents(self):
-    wms = mapscript.mapObj(self.mapfile)
+    mapObj = mapscript.mapObj(self.mapfile)
 
-    return (wms.extent.minx, wms.extent.miny, wms.extent.maxx, wms.extent.maxy)
+    return (mapObj.extent.minx, mapObj.extent.miny, mapObj.extent.maxx, mapObj.extent.maxy)
 
   def getLayers(self):
-    wms = mapscript.mapObj(self.mapfile)
+    mapObj = mapscript.mapObj(self.mapfile)
     layers = []
-    for i in range(0, wms.numlayers):
-      layers.append(wms.getLayer(i).name)
+    for i in range(0, mapObj.numlayers):
+      layers.append(mapObj.getLayer(i).name)
 
     return layers
 
   def getProj(self):
-    wms = mapscript.mapObj(self.mapfile)
+    mapObj = mapscript.mapObj(self.mapfile)
 
-    return wms.getProjection()
+    return mapObj.getProjection()
 
   def getMaxSize(self):
-    wms = mapscript.mapObj(self.mapfile)
+    mapObj = mapscript.mapObj(self.mapfile)
 
-    return wms.maxsize
+    return mapObj.maxsize
