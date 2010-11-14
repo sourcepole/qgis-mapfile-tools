@@ -149,14 +149,18 @@ class MapfileLayer(QgsPluginLayer):
     self.mapfile = mapfile
     self.layers = layers
     if self.mapfile == "":
-      return
+      return False
 
     # open mapfile
     self.maprenderer = MapfileRenderer(str(self.mapfile), self.messageTextEdit)
 
     # get projection as EPSG
     crs = QgsCoordinateReferenceSystem()
-    crs.createFromProj4(self.maprenderer.getProj())
+    try:
+        crs.createFromProj4(self.maprenderer.getProj())
+    except Exception as ex:
+        self.messageTextEdit.append( "Mapfile error:" + ex.__str__() )
+        return False
     if not crs.isValid():
       crs.validate()
 
@@ -178,12 +182,12 @@ class MapfileLayer(QgsPluginLayer):
     # trigger repaint
     self.setCacheImage(None)
     self.emit(SIGNAL("repaintRequested()"))
+    return True
 
   def openMapfile(self):
     mapfile = QFileDialog.getOpenFileName(None, "Mapfile", ".", "MapServer map files (*.map);;All files (*.*)","Filter list for selecting files from a dialog box")
     if mapfile != "":
-      self.loadMapfile(str(mapfile), ())
-      return True
+      return self.loadMapfile(str(mapfile), ())
     return False
 
   def showProperties(self):
