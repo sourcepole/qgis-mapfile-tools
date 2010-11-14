@@ -35,10 +35,11 @@ class MapfileLayer(QgsPluginLayer):
 
   LAYER_TYPE="mapfile"
 
-  def __init__(self):
+  def __init__(self, messageTextEdit):
     QgsPluginLayer.__init__(self, MapfileLayer.LAYER_TYPE, "Mapfile Tools plugin layer")
     self.setValid(True)
 
+    self.messageTextEdit = messageTextEdit
     self.mapfile = ""
     self.layers = ""
     self.maprenderer = None
@@ -152,6 +153,7 @@ class MapfileLayer(QgsPluginLayer):
 
     # open mapfile
     self.maprenderer = MapfileRenderer(str(self.mapfile))
+    self.messageTextEdit.append( "Loading " + mapfile )
 
     # get projection as EPSG
     crs = QgsCoordinateReferenceSystem()
