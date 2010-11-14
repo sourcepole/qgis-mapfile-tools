@@ -22,12 +22,14 @@ import mapscript
 
 class MapfileRenderer():
 
-  def __init__ (self, mapfile = None):
+  def __init__ (self, mapfile, messageTextEdit):
     self.mapfile = mapfile
+    self.messageTextEdit = messageTextEdit
     self.styles = ""
     self.layers = ""
     self.srs = "EPSG:4326"
     self.mime_type = "image/png"
+    self.messageTextEdit.append( "Opening " + self.mapfile )
 
   def setup(self, layers, srs = "EPSG:4326", mime_type = "image/png"):
     self.layers = layers
@@ -39,11 +41,21 @@ class MapfileRenderer():
   def render(self, extent, size):
     mapObj = mapscript.mapObj(self.mapfile)
 
+    mapObj.setConfigOption("MS_ERRORFILE", "stdout")
+    mapObj.debug = 5
+
     mapObj.setExtent(extent.xMinimum(), extent.yMinimum(), extent.xMaximum(), extent.yMaximum())
     mapObj.setSize(int(size[0]), int(size[1]))
 
+    mapscript.msIO_installStdoutToBuffer()
+
     mapImage = mapObj.draw() #= mapscript.imageObj(int(size[0]), int(size[1]), self.mime_type)
     data = mapImage.getBytes()
+
+    out = mapscript.msIO_getStdoutBufferString()
+    mapscript.msIO_resetHandlers()
+    self.messageTextEdit.append( out )
+
     return data
 
   # bbox = "xmin,ymin,xmax,ymax"

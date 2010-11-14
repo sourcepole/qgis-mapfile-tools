@@ -152,8 +152,7 @@ class MapfileLayer(QgsPluginLayer):
       return
 
     # open mapfile
-    self.maprenderer = MapfileRenderer(str(self.mapfile))
-    self.messageTextEdit.append( "Loading " + mapfile )
+    self.maprenderer = MapfileRenderer(str(self.mapfile), self.messageTextEdit)
 
     # get projection as EPSG
     crs = QgsCoordinateReferenceSystem()

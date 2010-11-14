@@ -35,6 +35,7 @@ class MapfileTools:
   def __init__(self, iface):
     # Save reference to the QGIS interface
     self.iface = iface
+    self.dock_window = None
 
   def initGui(self):
     # Create action that will start plugin configuration
@@ -48,10 +49,6 @@ class MapfileTools:
 
     # Register plugin layer type
     QgsPluginLayerRegistry.instance().addPluginLayerType(MapfilePluginLayerType())
-
-    self.dock_window = MessageWindow(self)
-    self.iface.mainWindow().addDockWidget( Qt.BottomDockWidgetArea,
-                                           self.dock_window )
  
   def unload(self):
     # Remove the plugin menu item and icon
@@ -62,6 +59,10 @@ class MapfileTools:
     QgsPluginLayerRegistry.instance().removePluginLayerType(MapfileLayer.LAYER_TYPE)
 
   def addLayer(self):
+    if not self.dock_window:
+        self.dock_window = MessageWindow(self)
+        self.iface.mainWindow().addDockWidget( Qt.BottomDockWidgetArea,
+                                                self.dock_window )
     # add new mapfile layer
     mapfileLayer = MapfileLayer( self.dock_window.textEdit )
     if mapfileLayer.openMapfile(): #mapfileLayer.showProperties():
