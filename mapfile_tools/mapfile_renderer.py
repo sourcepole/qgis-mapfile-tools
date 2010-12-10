@@ -46,6 +46,7 @@ class MapfileRenderer():
 
     mapObj.setExtent(extent.xMinimum(), extent.yMinimum(), extent.xMaximum(), extent.yMaximum())
     mapObj.setSize(int(size[0]), int(size[1]))
+    self.messageTextEdit.append( "Rendering " + extent.toString() )
 
     mapscript.msIO_installStdoutToBuffer()
 
