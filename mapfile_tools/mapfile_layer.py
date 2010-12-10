@@ -191,6 +191,8 @@ class MapfileLayer(QgsPluginLayer):
     return False
 
   def showProperties(self):
+    return False # Not supported for now - see http://qgis.osgeo.osuosl.org/issues/1
+
     # create and show the dialog
     dlg = MapfileLayerDialog()
 
