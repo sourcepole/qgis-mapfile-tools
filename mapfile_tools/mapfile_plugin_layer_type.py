@@ -28,11 +28,12 @@ from mapfile_layer import MapfileLayer
 
 class MapfilePluginLayerType(QgsPluginLayerType):
 
-  def __init__(self):
+  def __init__(self, mapfileTools):
     QgsPluginLayerType.__init__(self, MapfileLayer.LAYER_TYPE)
+    self.mapfileTools = mapfileTools
 
   def createLayer(self):
-    return MapfileLayer()
+    return MapfileLayer(self.mapfileTools.messageTextEdit())
 
   def showLayerProperties(self, layer):
     layer.showProperties()

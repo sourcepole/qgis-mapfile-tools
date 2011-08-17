@@ -48,7 +48,7 @@ class MapfileTools:
     self.iface.addPluginToMenu("Mapfile Tools", self.actionLayer)
 
     # Register plugin layer type
-    QgsPluginLayerRegistry.instance().addPluginLayerType(MapfilePluginLayerType())
+    QgsPluginLayerRegistry.instance().addPluginLayerType(MapfilePluginLayerType(self))
  
   def unload(self):
     # Remove the plugin menu item and icon
@@ -58,13 +58,16 @@ class MapfileTools:
     # Unregister plugin layer type
     QgsPluginLayerRegistry.instance().removePluginLayerType(MapfileLayer.LAYER_TYPE)
 
-  def addLayer(self):
+  def messageTextEdit(self):
     if not self.dock_window:
         self.dock_window = MessageWindow(self)
         self.iface.mainWindow().addDockWidget( Qt.BottomDockWidgetArea,
                                                 self.dock_window )
+    return self.dock_window.textEdit
+
+  def addLayer(self):
     # add new mapfile layer
-    mapfileLayer = MapfileLayer( self.dock_window.textEdit )
+    mapfileLayer = MapfileLayer(self.messageTextEdit())
     if mapfileLayer.openMapfile(): #mapfileLayer.showProperties():
       QgsMapLayerRegistry.instance().addMapLayer(mapfileLayer)
 

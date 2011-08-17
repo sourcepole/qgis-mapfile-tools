@@ -26,7 +26,7 @@ def name():
 def description():
   return "Load UMN Mapserver Mapfile as Layer"
 def version(): 
-  return "0.7"
+  return "0.8"
 def qgisMinimumVersion():
   return "1.5"
 def authorName():
