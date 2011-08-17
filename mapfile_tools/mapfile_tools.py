@@ -24,7 +24,7 @@ from PyQt4.QtCore import *
 from PyQt4.QtGui import *
 from qgis.core import *
 
-import resources
+import resources_rc
 
 from mapfile_layer import MapfileLayer
 from mapfile_plugin_layer_type import MapfilePluginLayerType
