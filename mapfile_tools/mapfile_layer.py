@@ -66,8 +66,6 @@ class MapfileLayer(QgsPluginLayer):
 
   def drawUntiled(self, painter, extent, viewport):
     img = self.maprenderer.render(extent, (viewport.width(), viewport.height()))
-    #bbox = "%f,%f,%f,%f" % (extent.xMinimum(), extent.yMinimum(), extent.xMaximum(), extent.yMaximum())
-    #img = self.maprenderer.renderWMS(bbox, (viewport.width(), viewport.height()))
     self.pixmap.loadFromData(img)
     painter.drawPixmap(viewport.xMinimum(), viewport.yMinimum(), self.pixmap)
 
@@ -153,14 +151,12 @@ class MapfileLayer(QgsPluginLayer):
 
     # open mapfile
     self.maprenderer = MapfileRenderer(str(self.mapfile), self.messageTextEdit)
+    if self.maprenderer.getMapObj() == None:
+      return False
 
     # get projection as EPSG
     crs = QgsCoordinateReferenceSystem()
-    try:
-        crs.createFromProj4(self.maprenderer.getProj())
-    except Exception as ex:
-        self.messageTextEdit.append( "Mapfile error:" + ex.__str__() )
-        return False
+    crs.createFromProj4(self.maprenderer.getProj())
     if not crs.isValid():
       crs.validate()
 
@@ -191,7 +187,6 @@ class MapfileLayer(QgsPluginLayer):
     return False
 
   def showProperties(self):
-    return False # Not supported for now - see http://qgis.osgeo.osuosl.org/issues/1
 
     # create and show the dialog
     dlg = MapfileLayerDialog()

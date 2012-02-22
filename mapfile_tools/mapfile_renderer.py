@@ -36,10 +36,18 @@ class MapfileRenderer():
     self.srs = srs
     self.mime_type = mime_type
 
+  def getMapObj(self):
+    mapObj = None
+    try:
+      mapObj = mapscript.mapObj(self.mapfile)
+    except mapscript.MapServerError as err:
+      self.messageTextEdit.append( str(err) )
+    return mapObj
+
   # extent: QExtent
   # size = (width,height)
   def render(self, extent, size):
-    mapObj = mapscript.mapObj(self.mapfile)
+    mapObj = self.getMapObj()
 
     mapObj.setConfigOption("MS_ERRORFILE", "stdout")
     mapObj.debug = 5
@@ -48,44 +56,27 @@ class MapfileRenderer():
     mapObj.setSize(int(size[0]), int(size[1]))
     self.messageTextEdit.append( "Rendering " + extent.toString() )
 
-    mapscript.msIO_installStdoutToBuffer()
+    data = ''
+    try:
+      mapscript.msIO_installStdoutToBuffer()
+      mapImage = mapObj.draw() #= mapscript.imageObj(int(size[0]), int(size[1]), self.mime_type)
+      data = mapImage.getBytes()
+      self.messageTextEdit.append( "Image size: " + str(len(data)) )
 
-    mapImage = mapObj.draw() #= mapscript.imageObj(int(size[0]), int(size[1]), self.mime_type)
-    data = mapImage.getBytes()
+      out = mapscript.msIO_getStdoutBufferString()
+      mapscript.msIO_resetHandlers()
+      self.messageTextEdit.append( out )
+    except mapscript.MapServerError as err:
+      self.messageTextEdit.append( str(err) )
 
-    out = mapscript.msIO_getStdoutBufferString()
-    mapscript.msIO_resetHandlers()
-    self.messageTextEdit.append( out )
-
-    return data
-
-  # bbox = "xmin,ymin,xmax,ymax"
-  # size = (width,height)
-  def renderWMS(self, bbox, size):
-    mapObj = mapscript.mapObj(self.mapfile)
-
-    req = mapscript.OWSRequest()
-    req.setParameter("bbox", bbox)
-    req.setParameter("width", str(size[0]))
-    req.setParameter("height", str(size[1]))
-    req.setParameter("srs", self.srs)
-    req.setParameter("format", self.mime_type)
-    req.setParameter("layers", self.layers)
-    req.setParameter("request", "GetMap")
-
-    mapObj.loadOWSParameters(req)
-
-    mapImage = mapObj.draw()
-    data = mapImage.getBytes()
     return data
 
   def getExtents(self):
-    mapObj = mapscript.mapObj(self.mapfile)
-
+    mapObj = self.getMapObj()
     return (mapObj.extent.minx, mapObj.extent.miny, mapObj.extent.maxx, mapObj.extent.maxy)
 
   def getLayers(self):
-    mapObj = mapscript.mapObj(self.mapfile)
+    mapObj = self.getMapObj()
     layers = []
     for i in range(0, mapObj.numlayers):
       layers.append(mapObj.getLayer(i).name)
@@ -93,11 +84,7 @@ class MapfileRenderer():
     return layers
 
   def getProj(self):
-    mapObj = mapscript.mapObj(self.mapfile)
-
-    return mapObj.getProjection()
+    return self.getMapObj().getProjection()
 
   def getMaxSize(self):
-    mapObj = mapscript.mapObj(self.mapfile)
-
-    return mapObj.maxsize
+    return self.getMapObj().maxsize
