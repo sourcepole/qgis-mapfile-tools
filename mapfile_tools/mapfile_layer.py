@@ -154,6 +154,8 @@ class MapfileLayer(QgsPluginLayer):
     if self.maprenderer.getMapObj() == None:
       return False
 
+    self.setLayerName(self.maprenderer.getMapObj().name)
+
     # get projection as EPSG
     crs = QgsCoordinateReferenceSystem()
     crs.createFromProj4(self.maprenderer.getProj())
@@ -187,6 +189,7 @@ class MapfileLayer(QgsPluginLayer):
     return False
 
   def showProperties(self):
+    return False # Not supported for now - see http://hub.qgis.org/issues/1
 
     # create and show the dialog
     dlg = MapfileLayerDialog()
